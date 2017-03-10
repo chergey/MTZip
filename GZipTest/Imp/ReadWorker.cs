@@ -31,7 +31,6 @@ namespace TestTask.Imp
             _fileName = fileName;
             _fifo = fifo;
             WorkActivity = workActivity;
-            SleepTime = sleepTime;
 
         }
 
@@ -47,15 +46,16 @@ namespace TestTask.Imp
                     if (_fifo.Count >= _quota)
                     {
 
-                        Thread.Sleep(SleepTime);
+                        Thread.Sleep(10);
                         //trigger GC (otherwise memory would be hard to get back) 
-                        
+                        /*
                         if (random.Next(1, 60) == 1)
                         {
                             GC.Collect();
 
                             GC.WaitForPendingFinalizers();
                         }
+                        */
                         continue;
                     }
 

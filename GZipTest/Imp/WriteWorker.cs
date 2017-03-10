@@ -21,7 +21,7 @@ namespace TestTask.Imp
 
             _fileName = fileName;
             _queue = queue;
-            SleepTime = sleepTime;
+            //SleepTime = sleepTime;
 
         }
 

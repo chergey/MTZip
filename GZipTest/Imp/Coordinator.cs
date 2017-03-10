@@ -20,7 +20,7 @@ namespace TestTask.Imp
             (int)(new PerformanceCounter("Memory", "Available Bytes").RawValue / BufSize/2);
 
         public int NumOfCompressorWorkers => Environment.ProcessorCount > 2
-            ? Environment.ProcessorCount +2
+            ? Environment.ProcessorCount -2
             : Environment.ProcessorCount == 1 ? 1 : 2;
 
         #endregion Properties
@@ -53,8 +53,7 @@ namespace TestTask.Imp
         }
 
     
-
-
+      
         public void Process()
         {
             Console.WriteLine("Begin reading file");
@@ -73,7 +72,7 @@ namespace TestTask.Imp
                 cw.WaitFor();
                 Console.WriteLine("Compress/decompress work {0} finished", cw.Name);
             });
-          //  _outQueue.Put(FiFo.Chunk.Empty);
+            _outQueue.Put(FiFo.Chunk.Empty);
             Console.WriteLine("Wait for write to be done");
             _writeWork.WaitFor();
 

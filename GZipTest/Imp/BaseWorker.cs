@@ -20,10 +20,6 @@ namespace TestTask.Imp
         /// <param name="chunk"></param>
         public abstract void Check(FiFo.Chunk chunk);
 
-        /// <summary>
-        /// time for worker to sleep in case of no data present or another worker operating
-        /// </summary>
-        protected int SleepTime;
 
         /// <summary>
         /// type of acitivity assigned to worker

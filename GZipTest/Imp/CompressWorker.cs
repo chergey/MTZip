@@ -25,8 +25,7 @@ namespace TestTask.Imp
         /// </summary>
         private ICompressor _compressor;
 
-        private static EventWaitHandle HandleDone=new ManualResetEvent(false);
-
+       // private static EventWaitHandle HandleDone=new ManualResetEvent(false);
 
 
         public CompressWorker(IFiFo inQueue, IFiFo outQueue,
@@ -35,7 +34,6 @@ namespace TestTask.Imp
             _inQueue = inQueue;
             _outQueue = outQueue;
             WorkActivity = workActivity;
-            SleepTime = sleepTime;
             _stop = false;
             _checkPoint = 0;
 
@@ -59,8 +57,8 @@ namespace TestTask.Imp
                 if (chunk.CheckPoint == -1)
                 {
                     // pause this worker
-                  //  HandleDone.WaitOne();
-                     _outQueue.Put(FiFo.Chunk.Empty);
+                 //   HandleDone.WaitOne();
+                 //    _outQueue.Put(FiFo.Chunk.Empty);
                     Stop();
                     break;
                 }
@@ -75,9 +73,8 @@ namespace TestTask.Imp
 
                         _outQueue.Put(new FiFo.Chunk { CheckPoint = _checkPoint, Data = data });
                         Interlocked.Increment(ref _checkPoint);
-                        //  cw.Set();
                         WriteHandle.Set();
-                      //  HandleDone.Set();
+                       // HandleDone.Set();
                         if (Debugger.IsAttached)
                         {
                             Console.WriteLine("CMP: " + (_checkPoint - 1));

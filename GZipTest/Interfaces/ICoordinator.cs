@@ -13,13 +13,8 @@ namespace TestTask.Interfaces
         /// <summary>
         /// Coordinate 
         /// </summary>
-        /// <returns>sucess or failure</returns>
-        bool Coordinate();
+        void Coordinate();
         
-        /// <summary>
-        /// post process
-        /// </summary>
-        void PostProcessWork();
 
         /// <summary>
         /// Process reading and compressing work

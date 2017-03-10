@@ -23,23 +23,23 @@ namespace TestTask.Imp
 
         public byte[] CompressChunk()
         {
+
             using (var ms = new MemoryStream())
             {
-                using (var gs = new GZipStream(ms, CompressionMode.Compress, true))
+                using (var gs = new GZipStream(ms, CompressionMode.Compress))
                 {
                     gs.Write(_chunk.Data, 0, _chunk.Data.Length);
-                    var data = ms.ToArray();
-                    if (data.Length == 0)
-                    {
-                        data = GZipHeader.GetDefaultHeader();
-                    }
-
-                    GZipHeader.WriteSegmentSizeToExtraField(ref data);
-
-                    return data;
                 }
+                var data = ms.ToArray();
+                if (data.Length == 0)
+                {
+                    data = GZipHeader.GetDefaultHeader();
+                }
+                GZipHeader.WriteSegmentSizeToExtraField(ref data);
+                return data;
             }
         }
+
 
         public byte[] DecompressChunk()
         {
@@ -56,9 +56,9 @@ namespace TestTask.Imp
                         {
                             tstream.Write(buffer, 0, bytesRead);
                         }
-                        return tstream.ToArray();
                     }
                 }
+                return tstream.ToArray();
             }
         }
     }

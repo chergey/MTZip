@@ -11,10 +11,6 @@
         /// </summary>
         string Name { get; }
 
-        /// <summary>
-        /// work result (0 - fail, 1 - win)
-        /// </summary>
-         bool Result { get; }
 
         /// <summary>
         ///  Start work

@@ -12,10 +12,8 @@ namespace TestTask.Imp
         /// </summary>
         public class Chunk
         {
-            /// <summary>
-            /// default chunk
-            /// </summary>
-            public static Chunk EmptyChunk => new Chunk { CheckPoint = -1 };
+
+            public static Chunk Empty => new Chunk {CheckPoint = -1};
             public int CheckPoint;
             public byte[] Data;
 
@@ -50,7 +48,7 @@ namespace TestTask.Imp
         {
             lock (_queueLock)
             {
-                if (!_queue.Contains(chunk))
+            //   if (!_queue.Contains(chunk))
                 {
                     _queue.Enqueue(chunk);
                 }
@@ -65,16 +63,15 @@ namespace TestTask.Imp
         public bool Get(out Chunk data)
         {
             data = default(Chunk);
-            bool success = false;
             lock (_queueLock)
             {
                 if (_queue.Count > 0)
                 {
                     data = _queue.Dequeue();
-                    success = true;
+                    return true;
                 }
             }
-            return success;
+            return false;
         }
     }
 }

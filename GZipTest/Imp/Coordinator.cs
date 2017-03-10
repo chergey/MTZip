@@ -17,10 +17,10 @@ namespace TestTask.Imp
         public int BufSize => 1024 * 1024;
 
         public int MaxItems =>
-            (int)(new PerformanceCounter("Memory", "Available Bytes").RawValue / BufSize);
+            (int)(new PerformanceCounter("Memory", "Available Bytes").RawValue / BufSize/2);
 
         public int NumOfCompressorWorkers => Environment.ProcessorCount > 2
-            ? Environment.ProcessorCount - 2
+            ? Environment.ProcessorCount +2
             : Environment.ProcessorCount == 1 ? 1 : 2;
 
         #endregion Properties
@@ -34,36 +34,25 @@ namespace TestTask.Imp
         #endregion injection
 
 
-        private bool _result;
 
-        readonly IFiFo _inQueue, _outQueue;
+        readonly IFiFo _outQueue;
 
 
-        public bool Coordinate()
+        public void Coordinate()
         {
-            _result = true;
-
-            Process();
-            PostProcessWork();
-
-            return _result;
-        }
-
-        public void PostProcessWork()
-        {
-            _outQueue.Put(FiFo.Chunk.EmptyChunk);
-
-            Console.WriteLine("Wait for write to be done");
-            _writeWork.WaitFor();
-
-            Console.WriteLine("Write finished: " + _writeWork.Result);
-            if (!_writeWork.Result)
+            try
+            {
+                Process();
+            }
+            catch (Exception)
             {
                 Terminate();
+                throw;
             }
 
-
         }
+
+    
 
 
         public void Process()
@@ -77,39 +66,31 @@ namespace TestTask.Imp
             Console.WriteLine("Begin writing to a new file");
             _writeWork.Start();
 
-            Console.WriteLine("Wait for reading to be done");
-            _readWork.WaitFor();
 
-            Console.WriteLine("Read finished: " + _readWork.Result);
-            if (!_readWork.Result)
-            {
-                Terminate();
-            }
-
-            Console.WriteLine("Wait for compress/decompress to be done");
+           Console.WriteLine("Wait for compress/decompress to be done");
             _compressWork.ForEach(cw =>
             {
                 cw.WaitFor();
                 Console.WriteLine("Compress/decompress work {0} finished", cw.Name);
-                if (!cw.Result)
-                {
-                    Terminate();
-                }
             });
+          //  _outQueue.Put(FiFo.Chunk.Empty);
+            Console.WriteLine("Wait for write to be done");
+            _writeWork.WaitFor();
+
+            Console.WriteLine("Write finished");
         }
 
         public Coordinator(string inFile, string outFile, Activity activity)
         {
-
-            _inQueue = new FiFo();
+            IFiFo inQueue = new FiFo();
             _outQueue = new FiFo();
 
             _readWork = new Work<BaseWorker>(new ReadWorker(MaxItems, BufSize,
-                inFile, _inQueue, activity));
+                inFile, inQueue, activity));
             _writeWork = new Work<BaseWorker>(new WriteWorker(outFile, _outQueue));
 
             _compressWork = Enumerable.Range(0, NumOfCompressorWorkers).Select(w => new Work<BaseWorker>(
-                new CompressWorker(_inQueue, _outQueue, activity))).Cast<IWork>().ToList();
+                new CompressWorker(inQueue, _outQueue, activity,w))).Cast<IWork>().ToList();
         }
 
         public void Terminate()
@@ -117,7 +98,6 @@ namespace TestTask.Imp
             _readWork.Abort();
             _compressWork.ForEach(cw => cw.Abort());
             _writeWork.Abort();
-            _result=false;
         }
     }
 }

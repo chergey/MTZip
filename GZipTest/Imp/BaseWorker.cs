@@ -1,4 +1,6 @@
-﻿using TestTask.Enums;
+﻿using System.Collections.Generic;
+using System.Threading;
+using TestTask.Enums;
 using TestTask.Interfaces;
 
 namespace TestTask.Imp
@@ -9,7 +11,7 @@ namespace TestTask.Imp
     /// </summary>
     public abstract class BaseWorker : IWorker
     {
-        public abstract bool Run();
+        public abstract void Run();
         public abstract void Stop();
 
         /// <summary>
@@ -28,7 +30,15 @@ namespace TestTask.Imp
         /// </summary>
         protected Activity WorkActivity;
 
+        /// <summary>
+        /// event from rw to cw
+        /// </summary>
+        public static EventWaitHandle ReadHandle = new ManualResetEvent(false);
 
+        /// <summary>
+        /// an event from cw to ww
+        /// </summary>
+        public static EventWaitHandle WriteHandle = new ManualResetEvent(false);
 
     }
 }

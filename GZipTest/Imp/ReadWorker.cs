@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -18,6 +19,7 @@ namespace TestTask.Imp
         private readonly int _bufSize;
         private readonly string _fileName;
         private readonly IFiFo _fifo;
+
         protected const int HeaderSize = 20;
 
 
@@ -33,81 +35,93 @@ namespace TestTask.Imp
 
         }
 
-        public override bool Run()
+        public override void Run()
         {
             int currentCheckPoint = 0;
-            try
+            var random = new Random();
+            using (var inStream = new FileStream(_fileName, FileMode.Open))
             {
-                using (var inStream = new FileStream(_fileName, FileMode.Open))
+                while (!_stop)
                 {
-                    while (!_stop)
+
+                    if (_fifo.Count >= _quota)
                     {
 
-                        if (_fifo.Count >= _quota)
+                        Thread.Sleep(SleepTime);
+                        //trigger GC (otherwise memory would be hard to get back) 
+                        
+                        if (random.Next(1, 60) == 1)
                         {
-                            Thread.Sleep(SleepTime);
-                            continue;
+                            GC.Collect();
+
+                            GC.WaitForPendingFinalizers();
                         }
-
-                        if (WorkActivity == Activity.Compress)
-                        {
-
-                            byte[] data;
-                            if (_bufSize > inStream.Length - inStream.Position)
-                            {
-                                data = new byte[inStream.Length - inStream.Position];
-                            }
-                            else
-                            {
-                                data = new byte[_bufSize];
-                            }
-                            if (inStream.Read(data, 0, data.Length) > 0)
-                            {
-                                _fifo.Put(new FiFo.Chunk { CheckPoint = currentCheckPoint, Data = data });
-                            }
-                            else
-                            {
-                                _fifo.Put(new FiFo.Chunk { CheckPoint = -1 });
-                                Stop();
-                                break;
-                            }
-
-
-                        }
-                        else if (WorkActivity == Activity.Decompress)
-                        {
-
-                            byte[] data = new byte[HeaderSize];
-                            if (inStream.Read(data, 0, data.Length) == 0)
-                            {
-                                _fifo.Put(new FiFo.Chunk { CheckPoint = -1 });
-                                Stop();
-                                break;
-                            }
-
-                            int size = new GZipHeader(data).GetSegmentSize();
-                            if (size == 0)
-                            {
-                                data = new byte[0];
-
-                            }
-                            Array.Resize(ref data, size);
-                            inStream.Read(data, HeaderSize, size - HeaderSize);
-
-                            _fifo.Put(new FiFo.Chunk { CheckPoint = currentCheckPoint, Data = data });
-
-                        }
-                        currentCheckPoint++;
+                        continue;
                     }
+
+                    if (WorkActivity == Activity.Compress)
+                    {
+
+                        byte[] data;
+                        if (inStream.Length - inStream.Position > _bufSize)
+                        {
+                            data = new byte[_bufSize];
+                        }
+                        else
+                        {
+                            data = new byte[inStream.Length - inStream.Position];
+                        }
+                        if (inStream.Read(data, 0, data.Length) > 0)
+                        {
+                            _fifo.Put(new FiFo.Chunk { CheckPoint = currentCheckPoint, Data = data });
+                            if (Debugger.IsAttached)
+                            {
+                                Console.WriteLine("RD: " + currentCheckPoint);
+                            }
+                        }
+                        else
+                        {
+                            _fifo.Put(FiFo.Chunk.Empty);
+                            Stop();
+                            break;
+                        }
+
+
+                    }
+                    else if (WorkActivity == Activity.Decompress)
+                    {
+
+                        byte[] data = new byte[HeaderSize];
+                        if (inStream.Read(data, 0, data.Length) == 0)
+                        {
+                            _fifo.Put(FiFo.Chunk.Empty);
+                            Stop();
+                            break;
+                        }
+
+                        int size = new GZipHeader(data).GetSegmentSize();
+                        if (size == 0)
+                        {
+                            data = new byte[0];
+
+                        }
+                        Array.Resize(ref data, size);
+                        inStream.Read(data, HeaderSize, size - HeaderSize);
+
+                        _fifo.Put(new FiFo.Chunk { CheckPoint = currentCheckPoint, Data = data });
+
+                        if (Debugger.IsAttached)
+                        {
+                            Console.WriteLine("RDEC: " + currentCheckPoint);
+                        }
+
+                    }
+                    currentCheckPoint++;
+                    ReadHandle.Set();
                 }
             }
 
-            catch (Exception e)
-            {
-                e.DumpException(_fileName);
-                return false;
-            }
-            return true;
+
         }
 
         public override void Stop()
@@ -120,9 +134,6 @@ namespace TestTask.Imp
             throw new NotImplementedException();
         }
 
-        public static byte[] ConcatByteArrays(params byte[][] arrays)
-        {
-            return arrays.SelectMany(x => x).ToArray();
-        }
+
     }
 }

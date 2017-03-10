@@ -8,8 +8,7 @@
        /// <summary>
        /// Run worker
        /// </summary>
-       /// <returns>0 - fail, 1 - win </returns>
-        bool Run();
+        void Run();
 
         /// <summary>
         /// Stop worker

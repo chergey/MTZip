@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using TestTask.Enums;
 using TestTask.Imp;
 using TestTask.Interfaces;
@@ -18,7 +19,14 @@ namespace TestTask
         {
 
             Console.Title = Resources.MainTitle;
+            var tempColor = Console.BackgroundColor;
             Console.BackgroundColor = ConsoleColor.Blue;
+
+            AppDomain.CurrentDomain.UnhandledException += (o, e) =>
+            {
+                Console.WriteLine(e);
+
+            };
 
             var tempArgs = args;
             while (true)
@@ -34,45 +42,44 @@ namespace TestTask
                 Console.CancelKeyPress += (o, e) =>
                 {
                     Console.WriteLine(Resources.CancelledOperation);
-                    Console.BackgroundColor = ConsoleColor.Red;
                     _coordinator.Terminate();
                 };
 
                 var sw = new Stopwatch();
                 sw.Start();
                 Console.WriteLine("Begin compression ");
-                var result = _coordinator.Coordinate();
-                if (result)
+                try
                 {
-                    Console.BackgroundColor = ConsoleColor.Yellow;
-                }
-                else
-                {
-                    Console.BackgroundColor = ConsoleColor.Red;
-                }
+                    _coordinator.Coordinate();
+                    Console.WriteLine("Operation finished with success ");
 
-                Console.WriteLine("Operation finished with {0}", result ? " sucess " : "failure");
-                Console.WriteLine(Resources.TimeElapsed + sw.Elapsed);
-
-                if (result)
-                {
                     var fileOrig = new FileInfo(tempArgs[1]);
                     var fileNew = new FileInfo(tempArgs[2]);
                     Console.WriteLine(Resources.CompressionRate +
-                                      (decimal) fileOrig.Length / fileNew.Length);
+                                      (decimal)fileOrig.Length / fileNew.Length);
                 }
+                catch(Exception e)
+                {
+                    Console.WriteLine("Operation finished with failure: " + e);
+
+                }
+                
+                Console.WriteLine(Resources.TimeElapsed + sw.Elapsed);
+
 
                 Console.WriteLine(Resources.PressEnter);
 
                 var key = Console.ReadKey().Key;
                 if (key != ConsoleKey.Enter)
                 {
+                    Console.BackgroundColor = tempColor;
                     return;
                 }
                 tempArgs = Console.ReadLine().Split(' ');
 
 
             }
+           
         }
 
         /// <summary>

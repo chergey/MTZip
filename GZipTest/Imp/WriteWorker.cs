@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using TestTask.Interfaces;
@@ -15,7 +16,7 @@ namespace TestTask.Imp
         private readonly string _fileName;
         private IFiFo _queue;
 
-        public WriteWorker(string fileName, IFiFo queue, int sleepTime = 10)
+        public WriteWorker(string fileName, IFiFo queue, int sleepTime = 50)
         {
 
             _fileName = fileName;
@@ -24,10 +25,9 @@ namespace TestTask.Imp
 
         }
 
-        public override bool Run()
+        public override void Run()
         {
-            try
-            {
+       
                 using (var outStream = new FileStream(_fileName, FileMode.Create))
                 {
                     while (!_stop)
@@ -37,8 +37,9 @@ namespace TestTask.Imp
 
                         if (!_queue.Get(out chunk))
                         {
-                            Thread.Sleep(SleepTime);
-                            continue;
+                            WriteHandle.WaitOne();
+                           //  Thread.Sleep(SleepTime);
+                               continue;
                         }
 
                         if (chunk.CheckPoint == -1)
@@ -46,17 +47,17 @@ namespace TestTask.Imp
                             Stop();
                             break;
                         }
-
                         outStream.Write(chunk.Data, 0, chunk.Data.Length);
+
+                        if (Debugger.IsAttached)
+                        {
+                            Console.WriteLine("WRT: " + chunk.CheckPoint);
+                        }
 
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                e.DumpException(_fileName);
-            }
-            return true;
+            
+
         }
 
         public override void Stop()
